@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/electro98/noteapp/domain"
@@ -26,6 +28,7 @@ func Run() {
 		Logger()
 	noteUseCase := initServices(db, &servicesLogger)
 
+	// Set up middleware
 	e := echo.New()
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogStatus: true,
@@ -48,13 +51,22 @@ func Run() {
 		return c.String(http.StatusOK, "Hello world!")
 	})
 
+	// Register services
 	servicesLogger = logger.With().
 		Str("component", "services").
 		Logger()
 	api := e.Group("/api")
 	note.NewNoteHandler(api, noteUseCase, &servicesLogger)
 
-	if err := e.Start(":1323"); err != nil {
+	// Graceful Shutdown
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+
+	sc := echo.StartConfig{
+		Address:         ":1323",
+		GracefulTimeout: 3 * time.Second,
+	}
+	if err := sc.Start(ctx, e); err != nil {
 		e.Logger.Error("failed to start server", "error", err)
 	}
 }
