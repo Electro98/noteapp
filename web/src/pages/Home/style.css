@@ -1,0 +1,21 @@
+article.NoteCard {
+  position: relative;
+}
+
+article.NoteCard > header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  > * {
+    margin: 0;
+  }
+  > small {
+    --pico-color: var(--pico-muted-color);
+  }
+}
+
+article.NoteCard > button {
+  position: absolute;
+  bottom: 1em;
+  right: 1em;
+}

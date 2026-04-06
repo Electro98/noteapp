@@ -1,0 +1,41 @@
+@use "@picocss/pico";
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+#app {
+  display: flex;
+  flex-flow: column;
+}
+
+main.container:has(.loading) {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  // justify-items: center;
+  > .loading {
+    // display: block;
+    align-self: center;
+    justify-self: center;
+  }
+}
+
+header {
+  padding: 0 1rem;
+  margin-bottom: 1rem;
+  h1 {
+    margin: 0;
+  }
+}
+
+.IconButton {
+  padding: 0.2rem;
+}
+
+.hidden {
+  display: none;
+}
