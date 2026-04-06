@@ -7,8 +7,8 @@ import (
 // Would be lovely if id was random
 type Note struct {
 	utils.BaseModel
-	Title   string `json:"content"`
-	Content string `json:"title"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }
 
 type Query[T any] interface {
