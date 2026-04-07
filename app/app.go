@@ -2,6 +2,9 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,14 +17,17 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 	"github.com/rs/zerolog"
-	"gorm.io/driver/sqlite"
+	"github.com/spf13/viper"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func Run() {
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
+	initConfiguration()
 
-	db := createMockDatabase(&logger)
+	logger := initLogger()
+
+	db := initDatabase(logger)
 
 	servicesLogger := logger.With().
 		Str("component", "services_internals").
@@ -62,8 +68,9 @@ func Run() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
+	port := viper.GetInt("app.port")
 	sc := echo.StartConfig{
-		Address:         ":1323",
+		Address:         fmt.Sprintf(":%d", port),
 		GracefulTimeout: 3 * time.Second,
 	}
 	if err := sc.Start(ctx, e); err != nil {
@@ -71,19 +78,49 @@ func Run() {
 	}
 }
 
-func createMockDatabase(logger *zerolog.Logger) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{TranslateError: true})
+func initConfiguration() {
+	viper.SetConfigType("toml")
+
+	viper.AddConfigPath(".")
+	viper.SetConfigName(".config")
+
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err == nil {
+		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	} else {
+		log.Fatal(err)
+	}
+}
+
+func initLogger() *zerolog.Logger {
+	var writer io.Writer
+	if viper.GetBool("logger.prettyLogging") {
+		writer = zerolog.ConsoleWriter{Out: os.Stdout}
+	} else {
+		writer = os.Stderr
+	}
+	logger := zerolog.New(writer).
+		With().Timestamp().Logger()
+
+	return &logger
+}
+
+func initDatabase(logger *zerolog.Logger) *gorm.DB {
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Asia/Tokyo",
+		viper.GetString("database.host"),
+		viper.GetString("database.username"),
+		viper.GetString("database.password"),
+		viper.GetString("database.name"),
+		viper.GetInt("database.port"),
+	)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to connect database")
-		panic("failed to connect database")
+		logger.Fatal().Err(err).Msg("failed to connect database")
 	}
 
-	ctx := context.Background()
-
 	db.AutoMigrate(&models.Note{})
-
-	err = gorm.G[models.Note](db).Create(ctx, &models.Note{Title: "Note 1", Content: "Hello world!"})
-	err = gorm.G[models.Note](db).Create(ctx, &models.Note{Title: "Note 2", Content: "This is a note."})
 
 	logger.Info().Msg("started database")
 	return db

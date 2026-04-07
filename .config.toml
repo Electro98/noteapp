@@ -1,0 +1,13 @@
+
+[app]
+	port = 8000
+
+[logger]
+	prettyLogging = true # Only in development environment
+
+[database]
+	host		= "127.0.0.1"
+	port		= 5432
+	name		= "noteapp_golang"
+	username	= "postgres"
+	password	= "password"
