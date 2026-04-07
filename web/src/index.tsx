@@ -20,7 +20,7 @@ import { RealAPI } from "./api/RealAPI.js";
 export function App() {
   return (
     <LocationProvider>
-      <NoteAPI.Provider value={new RealAPI("http://0.0.0.0:1323/api")}>
+      <NoteAPI.Provider value={new RealAPI("http://0.0.0.0:8000/api")}>
         <Header />
         <main class="container">
           <Router>
